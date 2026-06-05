@@ -32,14 +32,15 @@ Once you upload a file, it is automatically saved to your browser's localStorage
 
 - **Load** a saved team directly onto the wheel
 - **Edit** names or rename the list
-- **New** to create a fresh list without a file
 - **Delete** teams you no longer need
+
+You can also create a new list from scratch using the **+ Create New List** button on the main screen.
 
 ## Screenshots
 
-| Selecting a team | The wheel | Winner! |
+| Selecting a team | New list | Winner! |
 |:---:|:---:|:---:|
-| ![Select team](images/select-team.png) | ![Wheel spinning](images/wheel.png) | ![Winner announced](images/winner.png) |
+| ![Select team](images/select-team.png) | ![New list](images/new-list.png) | ![Winner announced](images/winner.png) |
 
 ## Requirements
 

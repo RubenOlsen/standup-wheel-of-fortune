@@ -236,22 +236,6 @@
       color: #fff;
     }
 
-    #new-list-btn {
-      background: none;
-      border: 2px solid rgba(78, 205, 196, 0.4);
-      color: rgba(78, 205, 196, 0.8);
-      padding: 10px 18px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: border-color 0.3s, color 0.3s;
-    }
-
-    #new-list-btn:hover {
-      border-color: #4ECDC4;
-      color: #4ECDC4;
-    }
-
     #edit-name-input {
       background: #1a1a2e;
       color: #fff;
@@ -588,6 +572,30 @@
 
     .toast.warning { border-color: rgba(255, 202, 40, 0.6); }
     .toast.info { border-color: rgba(78, 205, 196, 0.6); }
+
+    #create-new-btn {
+      background: none;
+      border: 2px solid rgba(78, 205, 196, 0.5);
+      color: rgba(78, 205, 196, 0.9);
+      padding: 12px 28px;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 30px;
+      transition: border-color 0.3s, color 0.3s, transform 0.2s, box-shadow 0.2s;
+    }
+
+    #create-new-btn:hover {
+      border-color: #4ECDC4;
+      color: #fff;
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+    }
+
+    #create-divider {
+      margin-top: -10px;
+    }
   </style>
 </head>
 <body>
@@ -601,7 +609,6 @@
     <div class="saved-actions">
       <button id="load-saved-btn" aria-label="Load selected list">Load</button>
       <button id="edit-saved-btn" aria-label="Edit selected list">Edit</button>
-      <button id="new-list-btn" aria-label="Create new list">New</button>
       <button id="delete-saved-btn" aria-label="Delete selected list">Delete</button>
     </div>
   </div>
@@ -612,6 +619,8 @@
     <p class="hint">One name per line</p>
     <input type="file" id="file-input" accept=".txt,text/plain" aria-label="Choose text file to upload">
   </div>
+  <div class="saved-divider" id="create-divider">or</div>
+  <button id="create-new-btn" aria-label="Create a new list manually">+ Create New List</button>
 
   <div id="wheel-container" role="region" aria-label="Spinning wheel">
     <canvas id="wheel" aria-hidden="true"></canvas>
@@ -722,7 +731,8 @@
   const editTextarea = document.getElementById('edit-textarea');
   const editSaveBtn = document.getElementById('edit-save-btn');
   const editCancelBtn = document.getElementById('edit-cancel-btn');
-  const newListBtn = document.getElementById('new-list-btn');
+  const createNewBtn = document.getElementById('create-new-btn');
+  const createDivider = document.getElementById('create-divider');
 
   const STORAGE_KEY = 'wheel-of-fortune-files';
 
@@ -776,6 +786,8 @@
     uploadArea.style.display = 'none';
     savedFilesEl.style.display = 'none';
     savedDivider.style.display = 'none';
+    createNewBtn.style.display = 'none';
+    createDivider.style.display = 'none';
     wheelContainer.style.display = 'block';
     newFileBtn.style.display = 'block';
     namesCount.style.display = 'block';
@@ -1098,6 +1110,8 @@
     newFileBtn.style.display = 'none';
     namesCount.style.display = 'none';
     uploadArea.style.display = '';
+    createNewBtn.style.display = '';
+    createDivider.style.display = '';
     fileInput.value = '';
     populateSavedFiles();
   });
@@ -1133,7 +1147,7 @@
     editTextarea.focus();
   });
 
-  newListBtn.addEventListener('click', () => {
+  createNewBtn.addEventListener('click', () => {
     editModalTitle.textContent = 'New List';
     editTextarea.value = '';
     editNameInput.value = '';
