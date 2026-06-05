@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A fun wheel-of-fortune spinner for picking standup order. Upload your team list and spin to choose who goes next.">
+  <meta property="og:title" content="Standup Wheel of Fortune">
+  <meta property="og:description" content="Spin the wheel to pick standup order. Upload a team list, spin, and let fate decide.">
+  <meta property="og:type" content="website">
+  <title>Standup Wheel of Fortune</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      text-align: center;
+      background: linear-gradient(90deg, #f9d423, #ff6f00, #f9d423, #ffe176, #f9d423);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+      filter: drop-shadow(0 0 12px rgba(249, 212, 35, 0.5));
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+
+    /* Upload area */
+    #saved-files {
+      margin-bottom: 20px;
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    #saved-files .saved-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #saved-files select {
+      background: #16213e;
+      color: #fff;
+      border: 2px solid rgba(78, 205, 196, 0.5);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      width: 100%;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234ECDC4' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    #saved-files select:hover {
+      border-color: #4ECDC4;
+    }
+
+    #saved-files select option {
+      background: #16213e;
+      color: #fff;
+    }
+
+    .saved-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+    }
+
+    #load-saved-btn {
+      background: linear-gradient(135deg, #4ECDC4, #00BFA5);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #load-saved-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+    }
+
+    #delete-saved-btn {
+      background: none;
+      border: 2px solid rgba(255, 107, 107, 0.4);
+      color: rgba(255, 107, 107, 0.8);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    #delete-saved-btn:hover {
+      border-color: #FF6B6B;
+      color: #FF6B6B;
+    }
+
+    #edit-saved-btn {
+      background: none;
+      border: 2px solid rgba(255, 202, 40, 0.4);
+      color: rgba(255, 202, 40, 0.8);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    #edit-saved-btn:hover {
+      border-color: #FFCA28;
+      color: #FFCA28;
+    }
+
+    /* Edit modal */
+    #edit-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #edit-modal.visible {
+      display: flex;
+    }
+
+    .edit-modal-content {
+      background: #16213e;
+      border: 2px solid rgba(78, 205, 196, 0.5);
+      border-radius: 16px;
+      padding: 30px;
+      width: 90%;
+      max-width: 450px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .edit-modal-content h2 {
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+      color: #FFCA28;
+    }
+
+    .edit-modal-content .edit-hint {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 14px;
+    }
+
+    #edit-textarea {
+      flex: 1;
+      min-height: 250px;
+      background: #1a1a2e;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    #edit-textarea:focus {
+      outline: none;
+      border-color: rgba(78, 205, 196, 0.6);
+    }
+
+    .edit-modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      justify-content: flex-end;
+    }
+
+    #edit-save-btn {
+      background: linear-gradient(135deg, #4ECDC4, #00BFA5);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #edit-save-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+    }
+
+    #edit-cancel-btn {
+      background: none;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    #edit-cancel-btn:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      color: #fff;
+    }
+
+    #new-list-btn {
+      background: none;
+      border: 2px solid rgba(78, 205, 196, 0.4);
+      color: rgba(78, 205, 196, 0.8);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    #new-list-btn:hover {
+      border-color: #4ECDC4;
+      color: #4ECDC4;
+    }
+
+    #edit-name-input {
+      background: #1a1a2e;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    #edit-name-input:focus {
+      outline: none;
+      border-color: rgba(78, 205, 196, 0.6);
+    }
+
+    .saved-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      max-width: 500px;
+      width: 100%;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.85rem;
+    }
+
+    .saved-divider::before,
+    .saved-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    #upload-area {
+      border: 3px dashed #4ECDC4;
+      border-radius: 16px;
+      padding: 40px 60px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.3s, border-color 0.3s;
+      margin-bottom: 30px;
+      max-width: 500px;
+    }
+
+    #upload-area:hover, #upload-area.dragover {
+      background: rgba(78, 205, 196, 0.1);
+      border-color: #FF6B6B;
+    }
+
+    #upload-area p {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+
+    #upload-area .hint {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    #file-input { display: none; }
+
+    /* Wheel container */
+    #wheel-container {
+      display: none;
+      position: relative;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+
+    #wheel-container.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #wheel-container #wheel,
+    #wheel-container #roll-btn {
+      transition: filter 0.4s ease-out;
+    }
+
+    #wheel-container.toned-down #wheel,
+    #wheel-container.toned-down #roll-btn {
+      filter: brightness(0.15) saturate(0.3);
+    }
+
+    #wheel {
+      display: block;
+    }
+
+    /* Roll button */
+    #roll-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: var(--btn-size, 90px);
+      height: var(--btn-size, 90px);
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.9);
+      background: conic-gradient(from var(--btn-angle, 0deg), #f9d423, #ff2d55, #d500f9, #00e5ff, #00e676, #ffd600, #f9d423);
+      color: #fff;
+      font-size: var(--btn-font, 1.2rem);
+      font-weight: 900;
+      cursor: pointer;
+      z-index: 10;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      box-shadow: 0 0 25px rgba(249, 212, 35, 0.5), 0 0 50px rgba(255, 45, 85, 0.3), 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.2);
+      transition: transform 0.1s;
+      animation: btn-hue-fallback 3s linear infinite, btn-pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Fallback: cycle hue on the entire button for browsers without @property */
+    @keyframes btn-hue-fallback {
+      to { filter: hue-rotate(360deg); }
+    }
+
+    @keyframes btn-rotate {
+      to { --btn-angle: 360deg; }
+    }
+
+    @keyframes btn-pulse {
+      0%, 100% { box-shadow: 0 0 25px rgba(249, 212, 35, 0.5), 0 0 50px rgba(255, 45, 85, 0.3), 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.2); }
+      50% { box-shadow: 0 0 40px rgba(249, 212, 35, 0.8), 0 0 80px rgba(255, 45, 85, 0.5), 0 0 120px rgba(213, 0, 249, 0.2), 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.2); }
+    }
+
+    #roll-btn:hover:not(:disabled) {
+      box-shadow: 0 0 50px rgba(249, 212, 35, 0.9), 0 0 100px rgba(255, 45, 85, 0.6), 0 0 150px rgba(213, 0, 249, 0.3), 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.2);
+    }
+
+    #roll-btn:active:not(:disabled) {
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    #roll-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      animation: none;
+      background: #555;
+      box-shadow: none;
+    }
+
+    #names-count {
+      font-size: 2rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 25px;
+    }
+
+    #new-file-btn {
+      background: none;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    #new-file-btn:hover {
+      border-color: #4ECDC4;
+      color: #fff;
+    }
+
+    /* Winner overlay — positioned over the wheel */
+    #winner-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    #winner-overlay.visible {
+      opacity: 1;
+    }
+
+    #winner-overlay .label {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    #winner-overlay .winner-name {
+      font-size: 4.5rem;
+      font-weight: 900;
+      margin-bottom: 28px;
+      word-break: break-word;
+      background: linear-gradient(135deg, #f9d423, #ff6f00, #f9d423);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+    }
+
+    #winner-overlay .remove-question {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 24px;
+    }
+
+    .winner-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    #remove-btn {
+      background: linear-gradient(135deg, #FF6D00, #FF2D55);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #remove-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 109, 0, 0.4);
+    }
+
+    #keep-btn {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #keep-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+    }
+
+    #reset-btn {
+      background: linear-gradient(135deg, #FF6B6B, #e74c3c);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: none;
+      transition: transform 0.2s;
+    }
+
+    #reset-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* Confetti canvas */
+    #confetti {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 200;
+      display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      #roll-btn { width: 60px; height: 60px; font-size: 0.9rem; }
+      #winner-overlay .winner-name { font-size: 2rem; }
+    }
+
+    /* Accessibility: reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      h1 { animation: none; }
+      #roll-btn { animation: none !important; }
+    }
+
+    /* Toast notifications */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #16213e;
+      border: 2px solid rgba(255, 107, 107, 0.6);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      max-width: 340px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateX(40px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: auto;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .toast.warning { border-color: rgba(255, 202, 40, 0.6); }
+    .toast.info { border-color: rgba(78, 205, 196, 0.6); }
+  </style>
+</head>
+<body>
+
+  <div id="toast-container"></div>
+  <h1>Standup Wheel of Fortune</h1>
+
+  <div id="saved-files" style="display:none;">
+    <p class="saved-label" id="saved-label">Load from previous session</p>
+    <select id="saved-select" aria-labelledby="saved-label"></select>
+    <div class="saved-actions">
+      <button id="load-saved-btn" aria-label="Load selected list">Load</button>
+      <button id="edit-saved-btn" aria-label="Edit selected list">Edit</button>
+      <button id="new-list-btn" aria-label="Create new list">New</button>
+      <button id="delete-saved-btn" aria-label="Delete selected list">Delete</button>
+    </div>
+  </div>
+  <div class="saved-divider" id="saved-divider" style="display:none;" aria-hidden="true">or upload a new file</div>
+
+  <div id="upload-area" role="button" tabindex="0" aria-label="Upload a text file with names, one per line">
+    <p>Drop a .txt file here or click to upload</p>
+    <p class="hint">One name per line</p>
+    <input type="file" id="file-input" accept=".txt,text/plain" aria-label="Choose text file to upload">
+  </div>
+
+  <div id="wheel-container" role="region" aria-label="Spinning wheel">
+    <canvas id="wheel" aria-hidden="true"></canvas>
+    <button id="roll-btn" disabled aria-label="Spin the wheel to pick a name">Roll</button>
+    <div id="winner-overlay" role="alertdialog" aria-labelledby="winner-name">
+      <p class="label">The winner is</p>
+      <p class="winner-name" id="winner-name" aria-live="assertive"></p>
+      <p class="remove-question" id="remove-question"></p>
+      <div class="winner-buttons">
+        <button id="remove-btn" aria-label="Remove winner from the wheel">Yes, remove</button>
+        <button id="keep-btn" aria-label="Keep winner on the wheel">No, keep</button>
+      </div>
+      <button id="reset-btn" aria-label="Reset wheel with all names">Reset Wheel</button>
+    </div>
+  </div>
+
+  <p id="names-count" style="display:none;" aria-live="polite"></p>
+  <button id="new-file-btn" style="display:none;" aria-label="End current session and start a new one">Start New Session</button>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <div id="edit-modal" role="dialog" aria-labelledby="edit-modal-title" aria-modal="true">
+    <div class="edit-modal-content">
+      <h2 id="edit-modal-title">Edit File</h2>
+      <p class="edit-hint">One name per line. Empty lines are ignored.</p>
+      <input type="text" id="edit-name-input" placeholder="List name" aria-label="List name" style="display:none;">
+      <textarea id="edit-textarea" aria-label="Names list, one per line"></textarea>
+      <div class="edit-modal-actions">
+        <button id="edit-cancel-btn">Cancel</button>
+        <button id="edit-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // --- Toast utility ---
+  function showToast(message, type = 'error') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.textContent = message;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // --- @property feature detection ---
+  // If CSS.registerProperty exists, the browser supports @property and we can
+  // use the conic-gradient rotation. Otherwise the hue-rotate fallback plays.
+  if (window.CSS && CSS.registerProperty) {
+    try {
+      CSS.registerProperty({ name: '--btn-angle', syntax: '<angle>', initialValue: '0deg', inherits: false });
+    } catch (e) { /* already registered via CSS @property */ }
+    document.getElementById('roll-btn').style.animation = 'btn-rotate 3s linear infinite, btn-pulse 1.5s ease-in-out infinite';
+  }
+
+  // --- Constants ---
+  const MAX_NAMES = 100;
+  const SPIN_DURATION_MS = 10000;
+  const SPIN_DURATION_SINGLE_MS = 3000;
+  const SPIN_MIN_ROTATIONS = 8;
+  const SPIN_EXTRA_ROTATIONS = 6;
+  const FLAPPER_SPRING_K = 0.3;
+  const FLAPPER_DAMPING = 0.75;
+  const CONFETTI_TIMEOUT_MS = 8000;
+  const CONFETTI_INITIAL_BURST = 450;
+  const CONFETTI_BATCH_SIZE = 90;
+  const TICK_BASE_FREQ = 800;
+  const TICK_FREQ_RANGE = 400;
+
+  // --- State ---
+  let names = [];
+  let removedNames = [];
+  let wheelReady = false;
+  let spinning = false;
+  let currentRotation = 0;
+  let audioCtx = null;
+  let flapperAngle = 0;
+  let flapperVelocity = 0;
+
+  // --- DOM Elements ---
+  const uploadArea = document.getElementById('upload-area');
+  const fileInput = document.getElementById('file-input');
+  const wheelContainer = document.getElementById('wheel-container');
+  const wheelCanvas = document.getElementById('wheel');
+  const rollBtn = document.getElementById('roll-btn');
+  const newFileBtn = document.getElementById('new-file-btn');
+  const namesCount = document.getElementById('names-count');
+  const winnerOverlay = document.getElementById('winner-overlay');
+  const winnerNameEl = document.getElementById('winner-name');
+  const removeQuestion = document.getElementById('remove-question');
+  const removeBtn = document.getElementById('remove-btn');
+  const keepBtn = document.getElementById('keep-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const confettiCanvas = document.getElementById('confetti');
+  const savedFilesEl = document.getElementById('saved-files');
+  const savedSelect = document.getElementById('saved-select');
+  const loadSavedBtn = document.getElementById('load-saved-btn');
+  const editSavedBtn = document.getElementById('edit-saved-btn');
+  const deleteSavedBtn = document.getElementById('delete-saved-btn');
+  const savedDivider = document.getElementById('saved-divider');
+  const editModal = document.getElementById('edit-modal');
+  const editModalTitle = document.getElementById('edit-modal-title');
+  const editNameInput = document.getElementById('edit-name-input');
+  const editTextarea = document.getElementById('edit-textarea');
+  const editSaveBtn = document.getElementById('edit-save-btn');
+  const editCancelBtn = document.getElementById('edit-cancel-btn');
+  const newListBtn = document.getElementById('new-list-btn');
+
+  const STORAGE_KEY = 'wheel-of-fortune-files';
+
+  function getSavedFiles() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    } catch { return {}; }
+  }
+
+  function saveFileToStorage(fileName, namesList) {
+    const saved = getSavedFiles();
+    saved[fileName] = namesList;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
+  function deleteFileFromStorage(fileName) {
+    const saved = getSavedFiles();
+    delete saved[fileName];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
+  function stripExtension(filename) {
+    return filename.replace(/\.txt$/i, '');
+  }
+
+  function populateSavedFiles() {
+    const saved = getSavedFiles();
+    const fileNames = Object.keys(saved).filter(name => Array.isArray(saved[name]) && saved[name].length > 0);
+    if (fileNames.length === 0) {
+      savedFilesEl.style.display = 'none';
+      savedDivider.style.display = 'none';
+      return;
+    }
+    savedSelect.innerHTML = '';
+    fileNames.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = stripExtension(name) + ' (' + saved[name].length + ' names)';
+      savedSelect.appendChild(opt);
+    });
+    savedFilesEl.style.display = '';
+    savedDivider.style.display = 'flex';
+  }
+
+  function activateWheel(namesList) {
+    names = namesList.map((n, i) => ({ name: n, color: COLORS[i % COLORS.length] }));
+    removedNames = [];
+    wheelReady = true;
+    currentRotation = 0;
+
+    uploadArea.style.display = 'none';
+    savedFilesEl.style.display = 'none';
+    savedDivider.style.display = 'none';
+    wheelContainer.style.display = 'block';
+    newFileBtn.style.display = 'block';
+    namesCount.style.display = 'block';
+    rollBtn.disabled = false;
+    resetBtn.style.display = 'none';
+
+    updateNamesCount();
+    drawWheel(currentRotation);
+
+    requestAnimationFrame(() => {
+      wheelContainer.classList.add('visible');
+    });
+  }
+
+  // Generate visually distinct wheel colors using HSL with high saturation and varied lightness
+  const COLORS = Array.from({ length: 100 }, (_, i) => {
+    const hue = (i * 137.5) % 360; // golden angle for maximum hue spread
+    const saturation = 70 + (i % 3) * 10; // 70-90%
+    const lightness = 45 + (i % 4) * 8; // 45-69%
+    return 'hsl(' + Math.round(hue) + ', ' + saturation + '%, ' + lightness + '%)';
+  });
+
+  function updateNamesCount() {
+    namesCount.textContent = names.length + ' names left';
+  }
+
+  // --- File Upload ---
+  uploadArea.addEventListener('click', () => fileInput.click());
+  uploadArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+  });
+
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+      loadFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      loadFile(fileInput.files[0]);
+    }
+  });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      let parsed = text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+
+      if (parsed.length === 0) {
+        showToast('No names found in file. Please upload a file with one name per line.');
+        return;
+      }
+
+      if (parsed.length > MAX_NAMES) {
+        showToast('Too many names (' + parsed.length + '). Truncating to first ' + MAX_NAMES + '.', 'warning');
+        parsed = parsed.slice(0, MAX_NAMES);
+      }
+
+      saveFileToStorage(file.name, parsed);
+      activateWheel(parsed);
+    };
+    reader.readAsText(file);
+  }
+
+  // --- Draw Wheel ---
+  function drawWheel(rotation) {
+    const ctx = wheelCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cssWidth = wheelCanvas.width / dpr;
+    const cssHeight = wheelCanvas.height / dpr;
+    const cx = cssWidth / 2;
+    const cy = cssHeight / 2;
+    const radius = Math.min(cx, cy) - 25;
+    const sliceAngle = (2 * Math.PI) / names.length;
+
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    // Wheel shadow
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 8, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.filter = 'blur(10px)';
+    ctx.fill();
+    ctx.filter = 'none';
+    ctx.restore();
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 5, 0, 2 * Math.PI);
+    ctx.fillStyle = '#2c3e50';
+    ctx.fill();
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+
+    for (let i = 0; i < names.length; i++) {
+      const startAngle = i * sliceAngle;
+      const endAngle = startAngle + sliceAngle;
+
+      // Slice
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = names[i].color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Text
+      ctx.save();
+      ctx.rotate(startAngle + sliceAngle / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      const fontSize = Math.max(10, Math.min(radius * 0.12, radius * sliceAngle * 0.45));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const maxLen = Math.max(8, Math.floor((radius - 40) / (fontSize * 0.55)));
+      const text = names[i].name.length > maxLen ? names[i].name.substring(0, maxLen - 1) + '\u2026' : names[i].name;
+      ctx.strokeText(text, radius - 12, fontSize / 3);
+      ctx.fillText(text, radius - 12, fontSize / 3);
+      ctx.restore();
+    }
+
+    ctx.restore();
+
+    // Pointer flapper — pivots from top center, points downward
+    const ptrW = radius * 0.06;
+    const ptrH = radius * 0.22;
+    const pivotX = cx;
+    const pivotY = 6;
+
+    ctx.save();
+    ctx.translate(pivotX, pivotY);
+    ctx.rotate(flapperAngle);
+
+    ctx.beginPath();
+    ctx.moveTo(-ptrW, 0);
+    ctx.lineTo(ptrW, 0);
+    ctx.lineTo(ptrW * 0.15, ptrH);
+    ctx.lineTo(-ptrW * 0.15, ptrH);
+    ctx.closePath();
+    ctx.fillStyle = '#e74c3c';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Pivot circle — fully round
+    ctx.beginPath();
+    ctx.arc(0, 0, ptrW, 0, 2 * Math.PI);
+    ctx.fillStyle = '#c0392b';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --- Audio ---
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new AudioContext();
+    }
+  }
+
+  function playTick() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = TICK_BASE_FREQ + Math.random() * TICK_FREQ_RANGE;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.05);
+  }
+
+  function playFanfare() {
+    if (!audioCtx) return;
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'triangle';
+      const t = audioCtx.currentTime + i * 0.15;
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  }
+
+  // --- Spin ---
+  function getWinnerIndex(rotation) {
+    const sliceAngle = (2 * Math.PI) / names.length;
+    // Pointer is at top = -PI/2 in canvas coords
+    // In the wheel's local frame, pointer is at angle (-PI/2 - rotation)
+    const pointerAngle = ((-Math.PI / 2 - rotation) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    return Math.floor(pointerAngle / sliceAngle) % names.length;
+  }
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function spin() {
+    if (!wheelReady || spinning || names.length === 0) return;
+
+    initAudio();
+    spinning = true;
+    rollBtn.disabled = true;
+
+    // Skip animation entirely for reduced-motion users
+    if (prefersReducedMotion) {
+      const extraAngle = Math.random() * 2 * Math.PI;
+      currentRotation += extraAngle;
+      drawWheel(currentRotation);
+      spinning = false;
+      const winnerIndex = getWinnerIndex(currentRotation);
+      const winnerName = names[winnerIndex].name;
+      playFanfare();
+      showWinner(winnerName, winnerIndex);
+      return;
+    }
+
+    // Brief spin for 1 name, normal for more
+    const isSingle = names.length === 1;
+    const startRotation = currentRotation;
+    const fullSpins = isSingle ? 2 + Math.random() * 2 : SPIN_MIN_ROTATIONS + Math.random() * SPIN_EXTRA_ROTATIONS;
+    const extraAngle = Math.random() * 2 * Math.PI;
+    const totalAngle = fullSpins * 2 * Math.PI + extraAngle;
+    const duration = isSingle ? SPIN_DURATION_SINGLE_MS : SPIN_DURATION_MS;
+    const startTime = performance.now();
+
+    let lastSliceIndex = -1;
+
+    function animate(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Cubic ease-out
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      currentRotation = startRotation + totalAngle * eased;
+
+      // Flapper spring physics
+      flapperVelocity += -FLAPPER_SPRING_K * flapperAngle;
+      flapperVelocity *= FLAPPER_DAMPING;
+      flapperAngle += flapperVelocity;
+
+      drawWheel(currentRotation);
+
+      // Tick sound + flapper kick on slice boundary
+      const currentSlice = getWinnerIndex(currentRotation);
+      if (currentSlice !== lastSliceIndex) {
+        playTick();
+        // Kick the flapper in alternating directions based on speed
+        const speed = totalAngle * 3 * Math.pow(1 - progress, 2) / duration;
+        const kickStrength = Math.max(0.08, 0.35 - speed * 40);
+        flapperVelocity += kickStrength;
+        lastSliceIndex = currentSlice;
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Done — settle flapper
+        flapperAngle = 0;
+        flapperVelocity = 0;
+        drawWheel(currentRotation);
+        spinning = false;
+        const winnerIndex = getWinnerIndex(currentRotation);
+        const winnerName = names[winnerIndex].name;
+
+        // Flash the winning slice briefly
+        setTimeout(() => {
+          playFanfare();
+          showWinner(winnerName, winnerIndex);
+        }, 300);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  rollBtn.addEventListener('click', spin);
+
+  newFileBtn.addEventListener('click', () => {
+    wheelContainer.style.display = 'none';
+    wheelContainer.classList.remove('visible');
+    newFileBtn.style.display = 'none';
+    namesCount.style.display = 'none';
+    uploadArea.style.display = '';
+    fileInput.value = '';
+    populateSavedFiles();
+  });
+
+  loadSavedBtn.addEventListener('click', () => {
+    const fileName = savedSelect.value;
+    if (!fileName) return;
+    const saved = getSavedFiles();
+    const namesList = saved[fileName];
+    if (!namesList || namesList.length === 0) return;
+    activateWheel(namesList);
+  });
+
+  deleteSavedBtn.addEventListener('click', () => {
+    const fileName = savedSelect.value;
+    if (!fileName) return;
+    deleteFileFromStorage(fileName);
+    populateSavedFiles();
+  });
+
+  editSavedBtn.addEventListener('click', () => {
+    const fileName = savedSelect.value;
+    if (!fileName) return;
+    const saved = getSavedFiles();
+    const namesList = saved[fileName];
+    if (!namesList) return;
+    editModalTitle.textContent = 'Edit: ' + stripExtension(fileName);
+    editTextarea.value = namesList.join('\n');
+    editNameInput.style.display = 'none';
+    editModal.dataset.fileName = fileName;
+    editModal.dataset.mode = 'edit';
+    editModal.classList.add('visible');
+    editTextarea.focus();
+  });
+
+  newListBtn.addEventListener('click', () => {
+    editModalTitle.textContent = 'New List';
+    editTextarea.value = '';
+    editNameInput.value = '';
+    editNameInput.style.display = '';
+    editModal.dataset.fileName = '';
+    editModal.dataset.mode = 'new';
+    editModal.classList.add('visible');
+    editNameInput.focus();
+  });
+
+  editSaveBtn.addEventListener('click', () => {
+    const mode = editModal.dataset.mode;
+    let parsed = editTextarea.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    if (parsed.length === 0) {
+      showToast('Cannot save an empty list.');
+      return;
+    }
+
+    if (parsed.length > MAX_NAMES) {
+      showToast('Too many names (' + parsed.length + '). Truncating to first ' + MAX_NAMES + '.', 'warning');
+      parsed = parsed.slice(0, MAX_NAMES);
+    }
+
+    let fileName;
+    if (mode === 'new') {
+      let rawName = editNameInput.value.trim();
+      if (!rawName) {
+        showToast('Please enter a list name.');
+        editNameInput.focus();
+        return;
+      }
+      // Ensure it has a storage key (add .txt internally for consistency)
+      if (!rawName.endsWith('.txt')) rawName += '.txt';
+      fileName = rawName;
+    } else {
+      fileName = editModal.dataset.fileName;
+    }
+
+    saveFileToStorage(fileName, parsed);
+    editModal.classList.remove('visible');
+    populateSavedFiles();
+  });
+
+  editCancelBtn.addEventListener('click', () => {
+    editModal.classList.remove('visible');
+  });
+
+  editModal.addEventListener('click', (e) => {
+    if (e.target === editModal) {
+      editModal.classList.remove('visible');
+    }
+  });
+
+  // --- Winner Overlay ---
+  let confettiRunning = false;
+  let confettiTimeoutId = null;
+
+  function showWinner(name, index) {
+    winnerNameEl.textContent = name;
+    winnerOverlay.querySelector('.label').textContent = 'The winner is';
+    removeQuestion.textContent = 'Remove ' + name + ' from the wheel?';
+    removeQuestion.style.display = '';
+    removeBtn.style.display = '';
+    keepBtn.style.display = '';
+    resetBtn.style.display = 'none';
+    winnerOverlay.style.display = 'flex';
+
+    wheelContainer.classList.add('toned-down');
+
+    requestAnimationFrame(() => {
+      winnerOverlay.classList.add('visible');
+    });
+
+    launchConfetti();
+
+    // Store winner index for removal
+    winnerOverlay.dataset.winnerIndex = index;
+  }
+
+  function closeWinner(shouldRemove) {
+    winnerOverlay.classList.remove('visible');
+    wheelContainer.classList.remove('toned-down');
+    stopConfetti();
+    setTimeout(() => {
+      winnerOverlay.style.display = 'none';
+    }, 400);
+
+    if (shouldRemove) {
+      const idx = parseInt(winnerOverlay.dataset.winnerIndex, 10);
+      removedNames.push(names.splice(idx, 1)[0]);
+      updateNamesCount();
+      if (names.length === 0) {
+        rollBtn.disabled = true;
+        showAllUsedMessage();
+        return;
+      }
+      drawWheel(currentRotation);
+      if (names.length === 1) {
+        rollBtn.disabled = true;
+        setTimeout(() => {
+          playFanfare();
+          showWinner(names[0].name, 0);
+        }, 600);
+        return;
+      }
+    }
+
+    rollBtn.disabled = false;
+  }
+
+  function showAllUsedMessage() {
+    winnerNameEl.textContent = 'All names used!';
+    winnerOverlay.querySelector('.label').textContent = '';
+    removeQuestion.style.display = 'none';
+    removeBtn.style.display = 'none';
+    keepBtn.style.display = 'none';
+    resetBtn.style.display = 'block';
+    winnerOverlay.style.display = 'flex';
+    wheelContainer.classList.add('toned-down');
+    requestAnimationFrame(() => {
+      winnerOverlay.classList.add('visible');
+    });
+  }
+
+  keepBtn.addEventListener('click', () => closeWinner(false));
+  removeBtn.addEventListener('click', () => closeWinner(true));
+
+  resetBtn.addEventListener('click', () => {
+    names = [...names, ...removedNames];
+    removedNames = [];
+    updateNamesCount();
+    winnerOverlay.classList.remove('visible');
+    wheelContainer.classList.remove('toned-down');
+    stopConfetti();
+    setTimeout(() => {
+      winnerOverlay.style.display = 'none';
+    }, 400);
+    rollBtn.disabled = false;
+    resetBtn.style.display = 'none';
+    drawWheel(currentRotation);
+  });
+
+  // --- Resize Handling ---
+  function resizeWheel() {
+    const dpr = window.devicePixelRatio || 1;
+    const halfViewport = Math.min(window.innerWidth, window.innerHeight) * 0.75;
+    const size = Math.max(300, Math.round(halfViewport));
+    wheelCanvas.width = size * dpr;
+    wheelCanvas.height = size * dpr;
+    wheelCanvas.style.width = size + 'px';
+    wheelCanvas.style.height = size + 'px';
+    const btnSize = Math.round(size * 0.16);
+    rollBtn.style.setProperty('--btn-size', btnSize + 'px');
+    rollBtn.style.setProperty('--btn-font', Math.round(btnSize * 0.22) + 'px');
+    if (wheelReady && names.length > 0) {
+      drawWheel(currentRotation);
+    }
+  }
+
+  window.addEventListener('resize', () => {
+    if (!spinning) resizeWheel();
+    if (confettiRunning) {
+      const dpr = window.devicePixelRatio || 1;
+      confettiCanvas.width = window.innerWidth * dpr;
+      confettiCanvas.height = window.innerHeight * dpr;
+      confettiCanvas.style.width = window.innerWidth + 'px';
+      confettiCanvas.style.height = window.innerHeight + 'px';
+    }
+  });
+
+  // Initial sizing
+  resizeWheel();
+
+  // Load saved files from previous sessions
+  populateSavedFiles();
+
+  // --- Confetti ---
+  let confettiAnimId = null;
+
+  function stopConfetti() {
+    confettiRunning = false;
+    if (confettiAnimId) {
+      cancelAnimationFrame(confettiAnimId);
+      confettiAnimId = null;
+    }
+    if (confettiTimeoutId) {
+      clearTimeout(confettiTimeoutId);
+      confettiTimeoutId = null;
+    }
+    const ctx = confettiCanvas.getContext('2d');
+    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    confettiCanvas.style.display = 'none';
+  }
+
+  function launchConfetti() {
+    if (prefersReducedMotion) return;
+    stopConfetti();
+    confettiRunning = true;
+    confettiTimeoutId = setTimeout(stopConfetti, CONFETTI_TIMEOUT_MS);
+    const ctx = confettiCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    confettiCanvas.width = w * dpr;
+    confettiCanvas.height = h * dpr;
+    confettiCanvas.style.width = w + 'px';
+    confettiCanvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    confettiCanvas.style.display = 'block';
+
+    const particles = [];
+
+    function spawnBatch() {
+      for (let i = 0; i < CONFETTI_BATCH_SIZE; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: -20 - Math.random() * 100,
+          w: 6 + Math.random() * 6,
+          h: 4 + Math.random() * 4,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          vx: (Math.random() - 0.5) * 4,
+          vy: 2 + Math.random() * 4,
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 10
+        });
+      }
+    }
+
+    // Initial burst
+    for (let i = 0; i < CONFETTI_INITIAL_BURST; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: -20 - Math.random() * 200,
+        w: 6 + Math.random() * 6,
+        h: 4 + Math.random() * 4,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        vx: (Math.random() - 0.5) * 4,
+        vy: 2 + Math.random() * 4,
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 10
+      });
+    }
+
+    let frame = 0;
+    function animateConfetti() {
+      if (!confettiRunning) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      // Spawn new particles periodically to keep confetti going
+      if (frame % 60 === 0 && frame > 0) {
+        spawnBatch();
+      }
+
+      // Remove dead particles (swap-and-pop for O(1) removal)
+      let alive = particles.length;
+      for (let i = alive - 1; i >= 0; i--) {
+        if (particles[i].y > h + 30) {
+          alive--;
+          particles[i] = particles[alive];
+        }
+      }
+      particles.length = alive;
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.05;
+        p.rotation += p.rotationSpeed;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+
+      frame++;
+      confettiAnimId = requestAnimationFrame(animateConfetti);
+    }
+    animateConfetti();
+  }
+</script>
+
+</body>
+</html>
